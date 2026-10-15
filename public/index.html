@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f766e">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Mis Gastos</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+<header>
+  <button id="prevMonth" aria-label="Mes anterior">‹</button>
+  <h1 id="monthLabel"></h1>
+  <button id="nextMonth" aria-label="Mes siguiente">›</button>
+</header>
+
+<main>
+  <!-- INICIO: entrada rápida -->
+  <section id="view-home" class="view active">
+    <div class="cash-card">
+      <span>En la cartera</span>
+      <strong id="cashBalance">0,00 €</strong>
+      <small id="monthSummary"></small>
+    </div>
+
+    <form id="quickForm" autocomplete="off">
+      <div class="type-toggle">
+        <button type="button" data-type="expense" class="active">Gasto</button>
+        <button type="button" data-type="income">Ingreso</button>
+      </div>
+      <input id="amount" type="text" inputmode="decimal" placeholder="0,00" aria-label="Importe">
+      <div id="catButtons" class="cat-grid"></div>
+      <p id="catHint" class="hint">Con el importe escrito, toca una categoría y se guarda al instante.</p>
+      <div class="row">
+        <input id="note" type="text" placeholder="Nota (opcional)">
+        <input id="date" type="date">
+      </div>
+      <button type="submit" id="saveBtn" class="primary">Guardar</button>
+    </form>
+
+    <div id="toast" class="toast" role="status"></div>
+  </section>
+
+  <!-- MOVIMIENTOS -->
+  <section id="view-list" class="view">
+    <ul id="txList" class="tx-list"></ul>
+    <p id="txEmpty" class="empty">Aún no hay movimientos este mes.</p>
+  </section>
+
+  <!-- RESUMEN + LÍMITES -->
+  <section id="view-stats" class="view">
+    <h2>Límites del mes</h2>
+    <div id="budgetList"></div>
+    <h2>Gasto por categoría</h2>
+    <canvas id="chart" width="320" height="320" aria-label="Gráfico de gastos por categoría"></canvas>
+    <ul id="legend" class="legend"></ul>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="view-settings" class="view">
+    <h2>Tono de los avisos</h2>
+    <select id="tone">
+      <option value="suave">Suave</option>
+      <option value="directo">Directo</option>
+      <option value="sin-filtro">Sin filtro</option>
+    </select>
+
+    <h2>Categorías y límites mensuales</h2>
+    <ul id="catSettings" class="cat-settings"></ul>
+    <form id="newCatForm" class="row">
+      <input id="newCatEmoji" type="text" maxlength="2" placeholder="🙂" aria-label="Emoji">
+      <input id="newCatName" type="text" placeholder="Nueva categoría" aria-label="Nombre">
+      <button class="primary" type="submit">Añadir</button>
+    </form>
+
+    <h2>Copia de seguridad</h2>
+    <div class="row">
+      <button id="exportBtn" class="secondary">Exportar</button>
+      <label class="secondary file-btn">Importar<input id="importFile" type="file" accept="application/json" hidden></label>
+    </div>
+    <p class="hint">Los datos solo están en este dispositivo. Exporta una copia de vez en cuando.</p>
+  </section>
+</main>
+
+<nav>
+  <button data-view="home" class="active"><span>➕</span>Añadir</button>
+  <button data-view="list"><span>🧾</span>Movimientos</button>
+  <button data-view="stats"><span>📊</span>Resumen</button>
+  <button data-view="settings"><span>⚙️</span>Ajustes</button>
+</nav>
+
+<script src="app.js"></script>
+</body>
+</html>
