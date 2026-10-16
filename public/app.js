@@ -13,6 +13,13 @@
     return Number.isFinite(n) && n > 0 ? Math.round(n * 100) : 0;
   };
   const toInput = (cents) => String(cents / 100).replace('.', ',');
+  // Como parseAmount, pero acepta 0 (devuelve null si no es un número válido)
+  const parseAmountOrZero = (txt) => {
+    const s = String(txt).replace(/\s/g, '').replace(',', '.');
+    if (s === '') return null;
+    const n = parseFloat(s);
+    return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
+  };
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const el = (tag, props = {}, children = []) => {
     const n = document.createElement(tag);
@@ -175,11 +182,18 @@
       const g = state.goals.find((x) => x.id === t.goalId);
       return { emoji: g ? g.emoji : '🐷', name: g ? `Ahorro · ${g.name}` : 'Ahorro' };
     }
+    if (t.type === 'transfer') return t.to === 'cash' ? { emoji: '🏧', name: 'Sacado del cajero' } : { emoji: '🏦', name: 'Pasado al banco' };
+    if (t.type === 'adjust') return { emoji: '⚖️', name: 'Ajuste de efectivo' };
     if (t.cat === LEGACY_INCOME) return { emoji: '💶', name: 'Ingreso' };
     return state.cats.find((c) => c.id === t.cat) || { emoji: '📦', name: 'Sin categoría' };
   }
-  const balance = () =>
-    state.txs.reduce((s, t) => s + (t.type === 'income' ? t.amount : -t.amount), 0);
+  // Efecto de cada movimiento sobre el efectivo (positivo = entra, negativo = sale)
+  const signed = (t) =>
+    t.type === 'income' ? t.amount
+    : t.type === 'adjust' ? t.delta
+    : t.type === 'transfer' ? (t.to === 'cash' ? t.amount : -t.amount)
+    : -t.amount;
+  const balance = () => state.txs.reduce((s, t) => s + signed(t), 0);
 
   async function migrateCats() {
     const flag = (await dbAll('meta')).find((m) => m.key === 'catsMig');
@@ -459,6 +473,8 @@
     const sum = (type) => mt.filter((t) => t.type === type).reduce((s, t) => s + t.amount, 0);
     const chips = [['Gastos', '−' + fmt(sum('expense'))], ['Ingresos', '+' + fmt(sum('income'))]];
     if (sum('saving')) chips.push(['Ahorrado', fmt(sum('saving'))]);
+    const toBank = mt.filter((t) => t.type === 'transfer' && t.to === 'bank').reduce((s, t) => s + t.amount, 0);
+    if (toBank) chips.push(['Al banco', fmt(toBank)]);
     $('listSummary').replaceChildren(...chips.map(([k, v]) => el('span', { className: 'chip' }, [k, el('b', {}, v)])));
 
     const dayTotals = {};
@@ -473,12 +489,13 @@
         items.push(el('li', { className: 'day' }, [el('span', {}, dayLabel(t.date)), el('span', {}, dayTotals[t.date] ? '−' + fmt(dayTotals[t.date]) : '')]));
       }
       const i = info(t);
-      const sign = t.type === 'income' ? '+' : '−';
-      const cls = t.type === 'income' ? ' in' : t.type === 'saving' ? ' sv' : '';
+      const v = signed(t);
+      const sign = v >= 0 ? '+' : '−';
+      const cls = t.type === 'saving' ? ' sv' : v > 0 ? ' in' : '';
       const li = el('li', { className: 'tx' }, [
         el('span', { className: 'e' }, i.emoji),
         el('div', { className: 'info' }, [el('b', {}, i.name), el('small', {}, (t.recurring ? '🔁 ' : '') + (t.note || ''))]),
-        el('span', { className: 'amt' + cls }, sign + fmt(t.amount)),
+        el('span', { className: 'amt' + cls }, sign + fmt(Math.abs(v))),
       ]);
       li.addEventListener('click', () => openEdit(t));
       items.push(li);
@@ -739,9 +756,9 @@
     $('editAmount').value = toInput(t.amount);
     $('editNote').value = t.note || '';
     $('editDate').value = t.date;
-    const isSaving = t.type === 'saving';
-    $('editCatWrap').hidden = isSaving;
-    if (!isSaving) {
+    const noCat = ['saving', 'transfer', 'adjust'].includes(t.type);
+    $('editCatWrap').hidden = noCat;
+    if (!noCat) {
       const kind = t.type === 'income' ? 'income' : 'expense';
       const opts = catsOf(kind).map((c) => el('option', { value: c.id }, `${c.emoji} ${c.name}`));
       if (!state.cats.some((c) => c.id === t.cat)) opts.unshift(el('option', { value: t.cat }, 'Sin categoría'));
@@ -856,6 +873,70 @@
       else toast(`Aportados ${fmt(amount)} a ${g.name} (${Math.min(100, Math.round((after / g.target) * 100))}%)`);
     });
 
+    // Ajustar efectivo: "tengo X en la cartera"
+    const updateAdjustDiff = () => {
+      const v = parseAmountOrZero($('adjustAmount').value);
+      const diff = v === null ? null : v - balance();
+      $('adjustDiff').textContent =
+        diff === null ? ''
+        : diff === 0 ? 'Ya cuadra: no hay nada que ajustar.'
+        : `Huchi apuntará un ajuste de ${diff > 0 ? '+' : '−'}${fmt(Math.abs(diff))}. No cuenta como gasto ni como ingreso.`;
+    };
+    $('adjustBtn').addEventListener('click', () => {
+      $('adjustNow').textContent = `Ahora Huchi cree que tienes ${fmt(balance())} en la cartera.`;
+      $('adjustAmount').value = '';
+      $('adjustDiff').textContent = '';
+      $('adjustDialog').showModal();
+      $('adjustAmount').focus();
+    });
+    $('adjustAmount').addEventListener('input', updateAdjustDiff);
+    $('adjustCancel').addEventListener('click', () => $('adjustDialog').close());
+    $('adjustForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const v = parseAmountOrZero($('adjustAmount').value);
+      if (v === null) { toast('Escribe cuánto efectivo tienes (puede ser 0)'); return; }
+      const diff = v - balance();
+      $('adjustDialog').close();
+      if (diff === 0) { toast('Ya cuadraba: tu cartera tiene justo ese efectivo'); return; }
+      await dbAdd('tx', { type: 'adjust', delta: diff, amount: Math.abs(diff), cat: '', note: '', date: todayStr() });
+      await load();
+      renderAll();
+      toast(`Efectivo ajustado a ${fmt(v)} (${diff > 0 ? '+' : '−'}${fmt(Math.abs(diff))})`);
+    });
+
+    // Pasar efectivo al banco / sacar del cajero
+    let transferTo = 'bank';
+    const setTransferDir = (dir) => {
+      transferTo = dir;
+      document.querySelectorAll('#transferDir button').forEach((b) => b.classList.toggle('active', b.dataset.dir === dir));
+      $('transferTitle').textContent = dir === 'bank' ? 'Pasar efectivo al banco' : 'Sacar efectivo del cajero';
+      $('transferHint').textContent = dir === 'bank'
+        ? 'Sale de tu cartera y no cuenta como gasto.'
+        : 'Entra en tu cartera y no cuenta como ingreso.';
+    };
+    $('transferBtn').addEventListener('click', () => {
+      setTransferDir('bank');
+      $('transferAmount').value = '';
+      $('transferNote').value = '';
+      $('transferDialog').showModal();
+      $('transferAmount').focus();
+    });
+    document.querySelectorAll('#transferDir button').forEach((b) => b.addEventListener('click', () => setTransferDir(b.dataset.dir)));
+    $('transferCancel').addEventListener('click', () => $('transferDialog').close());
+    $('transferForm').addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const amount = parseAmount($('transferAmount').value);
+      if (!amount) { toast('Pon un importe mayor que 0'); return; }
+      if (transferTo === 'bank' && amount > balance() && !confirm('Tu cartera no llega para tanto y quedaría en negativo. ¿Pasarlo igualmente?')) return;
+      await dbAdd('tx', { type: 'transfer', to: transferTo, amount, cat: '', note: $('transferNote').value.trim(), date: todayStr() });
+      $('transferDialog').close();
+      await load();
+      renderAll();
+      toast(transferTo === 'bank'
+        ? `Pasados ${fmt(amount)} al banco. En la cartera te quedan ${fmt(balance())}.`
+        : `Sacados ${fmt(amount)} del cajero. Ahora tienes ${fmt(balance())} en la cartera.`);
+    });
+
     // Editar movimiento
     $('editCancel').addEventListener('click', () => $('editDialog').close());
     $('editDelete').addEventListener('click', async () => {
@@ -871,7 +952,8 @@
       const amount = parseAmount($('editAmount').value);
       if (!t || !amount) { toast('Pon un importe mayor que 0'); return; }
       const updated = { ...t, amount, note: $('editNote').value.trim(), date: $('editDate').value || t.date };
-      if (t.type !== 'saving') updated.cat = $('editCat').value;
+      if (!['saving', 'transfer', 'adjust'].includes(t.type)) updated.cat = $('editCat').value;
+      if (t.type === 'adjust') updated.delta = (t.delta < 0 ? -1 : 1) * amount;
       await dbPut('tx', updated);
       $('editDialog').close();
       await load();

@@ -64,7 +64,7 @@ h2 { font-size: .9rem; color: var(--muted); margin: 24px 0 8px; font-weight: 700
 /* Cabecera con la mascota */
 .hero {
   background: var(--grad); color: #fff; border-radius: var(--radius);
-  padding: 16px; display: flex; align-items: center; gap: 14px;
+  padding: 16px; display: flex; align-items: center; gap: 14px; flex-wrap: wrap;
   box-shadow: var(--shadow);
 }
 .mascot {
@@ -72,7 +72,7 @@ h2 { font-size: .9rem; color: var(--muted); margin: 24px 0 8px; font-weight: 700
   background: #fff; display: grid; place-items: center;
 }
 .mascot svg { width: 76px; height: 76px; }
-.hero-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.hero-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; flex: 1; }
 .hero-text span { font-size: .85rem; opacity: .9; }
 .hero-text strong { font-size: 2rem; line-height: 1.1; }
 .hero-text small { opacity: .92; }
@@ -278,3 +278,20 @@ dialog::backdrop { background: rgba(59, 18, 48, .45); }
   .alert-card, .alert-card .bar > i { transition: none; }
   .alert-card.over.show { animation: none; }
 }
+
+/* Botones de efectivo en la tarjeta de la cartera */
+.hero-actions { flex: 1 0 100%; display: flex; gap: 8px; }
+.hero-actions button {
+  flex: 1; border: 0; border-radius: 999px; padding: 10px 8px;
+  background: rgba(255, 255, 255, .22); color: #fff;
+  font-family: inherit; font-size: .88rem; font-weight: 800; cursor: pointer;
+}
+.hero-actions button:active { background: rgba(255, 255, 255, .36); }
+
+/* Selector de dos opciones dentro de los diálogos */
+.seg { display: flex; background: var(--bg); border-radius: 999px; padding: 4px; border: 1px solid var(--line); }
+.seg button {
+  flex: 1; border: 0; background: none; color: var(--muted);
+  padding: 10px; border-radius: 999px; font-weight: 700; font-family: inherit; font-size: .95rem;
+}
+.seg button.active { background: var(--accent); color: var(--accent-ink); }

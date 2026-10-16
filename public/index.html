@@ -29,6 +29,10 @@
         <strong id="cashBalance">0,00 €</strong>
         <small id="monthSummary"></small>
       </div>
+      <div class="hero-actions">
+        <button type="button" id="adjustBtn">✏️ Ajustar efectivo</button>
+        <button type="button" id="transferBtn">🏦 Banco / cajero</button>
+      </div>
     </div>
     <div id="bubble" class="bubble"></div>
     <p id="allowance" class="allowance"></p>
@@ -193,6 +197,38 @@
     <div class="row">
       <button type="button" id="contribCancel" class="secondary">Cancelar</button>
       <button type="submit" class="primary">Aportar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Ajustar el efectivo que tengo -->
+<dialog id="adjustDialog">
+  <form id="adjustForm" class="sheet">
+    <h3>Ajustar efectivo</h3>
+    <p id="adjustNow" class="hint"></p>
+    <input id="adjustAmount" type="text" inputmode="decimal" placeholder="¿Cuánto efectivo tienes ahora? €" aria-label="Efectivo que tienes ahora">
+    <p id="adjustDiff" class="hint"></p>
+    <div class="row">
+      <button type="button" id="adjustCancel" class="secondary">Cancelar</button>
+      <button type="submit" class="primary">Ajustar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Pasar al banco / sacar del cajero -->
+<dialog id="transferDialog">
+  <form id="transferForm" class="sheet">
+    <h3 id="transferTitle">Pasar efectivo al banco</h3>
+    <div class="seg" id="transferDir">
+      <button type="button" data-dir="bank" class="active">🏦 Al banco</button>
+      <button type="button" data-dir="cash">🏧 Del cajero</button>
+    </div>
+    <input id="transferAmount" type="text" inputmode="decimal" placeholder="Importe €" aria-label="Importe">
+    <input id="transferNote" type="text" placeholder="Nota (opcional)" aria-label="Nota">
+    <p id="transferHint" class="hint"></p>
+    <div class="row">
+      <button type="button" id="transferCancel" class="secondary">Cancelar</button>
+      <button type="submit" class="primary">Guardar</button>
     </div>
   </form>
 </dialog>
