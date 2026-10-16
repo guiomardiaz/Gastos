@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#db2777">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Huchi">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="icon-180.png">
+<title>Huchi</title>
+<link rel="stylesheet" href="styles.css">
+</head>
+<body data-view="home">
+<header>
+  <button id="prevMonth" aria-label="Mes anterior">‹</button>
+  <h1 id="monthLabel"></h1>
+  <button id="nextMonth" aria-label="Mes siguiente">›</button>
+</header>
+
+<main>
+  <!-- AÑADIR -->
+  <section id="view-home" class="view active">
+    <div class="hero">
+      <div id="mascot" class="mascot" aria-hidden="true"></div>
+      <div class="hero-text">
+        <span>En la cartera</span>
+        <strong id="cashBalance">0,00 €</strong>
+        <small id="monthSummary"></small>
+      </div>
+    </div>
+    <div id="bubble" class="bubble"></div>
+    <p id="allowance" class="allowance"></p>
+
+    <form id="quickForm" autocomplete="off">
+      <div class="type-toggle">
+        <button type="button" data-type="expense" class="active">Gasto</button>
+        <button type="button" data-type="income">Ingreso</button>
+      </div>
+      <div class="amount-wrap">
+        <input id="amount" type="text" inputmode="decimal" placeholder="0,00" aria-label="Importe">
+        <span>€</span>
+      </div>
+      <div id="catButtons" class="cat-grid"></div>
+      <p id="catHint" class="hint">Con el importe escrito, toca una categoría y se guarda al instante.</p>
+      <div class="row">
+        <input id="note" type="text" placeholder="Nota (opcional)">
+        <input id="date" type="date" aria-label="Fecha">
+      </div>
+      <button type="submit" id="saveBtn" class="primary">Guardar</button>
+    </form>
+  </section>
+
+  <!-- MOVIMIENTOS -->
+  <section id="view-list" class="view">
+    <div id="listSummary" class="chips"></div>
+    <ul id="txList" class="tx-list"></ul>
+    <p id="txEmpty" class="empty">Aún no hay movimientos este mes.</p>
+  </section>
+
+  <!-- RESUMEN -->
+  <section id="view-stats" class="view">
+    <h2>Previsión</h2>
+    <div id="forecast" class="card-note"></div>
+    <h2>Gasto por categoría</h2>
+    <canvas id="chart" width="320" height="320" aria-label="Gráfico de gastos por categoría"></canvas>
+    <ul id="legend" class="legend"></ul>
+  </section>
+
+  <!-- LÍMITES -->
+  <section id="view-limits" class="view">
+    <h1 class="page-title">Límites del mes</h1>
+    <p id="limitsTotal" class="hint"></p>
+    <div id="limitList"></div>
+  </section>
+
+  <!-- METAS -->
+  <section id="view-goals" class="view">
+    <h1 class="page-title">Metas de ahorro</h1>
+    <p class="hint">El dinero que aportas sale de tu cartera y se queda guardado en la meta.</p>
+    <ul id="goalList" class="goal-list"></ul>
+    <p id="goalEmpty" class="empty">Todavía no tienes metas. ¡Crea la primera!</p>
+    <h2>Nueva meta</h2>
+    <form id="goalForm" class="row wrap">
+      <input id="goalEmoji" type="text" maxlength="2" placeholder="🎯" aria-label="Emoji" class="emoji-in">
+      <input id="goalName" type="text" placeholder="Nombre (ej. Viaje)" aria-label="Nombre de la meta">
+      <input id="goalTarget" type="text" inputmode="decimal" placeholder="Objetivo €" aria-label="Objetivo en euros" class="small-in">
+      <button class="primary" type="submit">Crear</button>
+    </form>
+  </section>
+
+  <!-- AJUSTES -->
+  <section id="view-settings" class="view">
+    <h1 class="page-title">Ajustes</h1>
+
+    <h2>Tono de los avisos</h2>
+    <select id="tone" aria-label="Tono de los avisos">
+      <option value="suave">Buen rollo 💕</option>
+      <option value="directo">Directo 🎯</option>
+      <option value="sin-filtro">Sin filtro 🔥</option>
+    </select>
+
+    <h2>Categorías de gasto</h2>
+    <p class="hint">Los límites se ponen en la pestaña Límites.</p>
+    <ul id="catSettings" class="cat-settings"></ul>
+    <h2>Categorías de ingreso</h2>
+    <ul id="incomeSettings" class="cat-settings"></ul>
+    <form id="newCatForm" class="row wrap">
+      <select id="newCatKind" aria-label="Tipo" class="small-in">
+        <option value="expense">Gasto</option>
+        <option value="income">Ingreso</option>
+      </select>
+      <input id="newCatEmoji" type="text" maxlength="2" placeholder="🙂" aria-label="Emoji" class="emoji-in">
+      <input id="newCatName" type="text" placeholder="Nueva categoría" aria-label="Nombre">
+      <button class="primary" type="submit">Añadir</button>
+    </form>
+
+    <h2>Gastos e ingresos que se repiten</h2>
+    <ul id="ruleList" class="cat-settings"></ul>
+    <form id="ruleForm" class="rule-form">
+      <div class="row">
+        <select id="ruleType" aria-label="Tipo">
+          <option value="expense">Gasto</option>
+          <option value="income">Ingreso</option>
+        </select>
+        <input id="ruleAmount" type="text" inputmode="decimal" placeholder="Importe €" aria-label="Importe">
+      </div>
+      <div class="row">
+        <select id="ruleCat" aria-label="Categoría"></select>
+        <input id="ruleDay" type="number" min="1" max="28" value="1" aria-label="Día del mes" class="small-in">
+      </div>
+      <input id="ruleNote" type="text" placeholder="Nota (ej. Alquiler)">
+      <button class="primary" type="submit">Añadir repetición</button>
+      <p class="hint">Se apunta solo cada mes, en el día elegido (del 1 al 28).</p>
+    </form>
+
+    <h2>Copia de seguridad</h2>
+    <div class="row">
+      <button id="exportBtn" class="secondary" type="button">Exportar</button>
+      <label class="secondary file-btn">Importar<input id="importFile" type="file" accept="application/json" hidden></label>
+    </div>
+    <p class="hint">Tus datos solo están en este dispositivo. Exporta una copia de vez en cuando.</p>
+  </section>
+</main>
+
+<div id="alertCard" class="alert-card" role="alert" hidden>
+  <div class="alert-top">
+    <div id="alertMascot" class="alert-mascot" aria-hidden="true"></div>
+    <div class="alert-head">
+      <b id="alertTitle"></b>
+      <span id="alertCat"></span>
+    </div>
+    <span class="alert-x" aria-hidden="true">✕</span>
+  </div>
+  <div class="bar"><i id="alertBar"></i></div>
+  <div class="alert-nums"><span id="alertSpent"></span><b id="alertLeft"></b></div>
+  <p id="alertMsg"></p>
+</div>
+
+<div id="toast" class="toast" role="status"></div>
+
+<nav>
+  <button data-view="home" class="active"><span>➕</span>Añadir</button>
+  <button data-view="list"><span>🧾</span>Historial</button>
+  <button data-view="stats"><span>📊</span>Resumen</button>
+  <button data-view="limits"><span>🎯</span>Límites</button>
+  <button data-view="goals"><span>🐷</span>Metas</button>
+  <button data-view="settings"><span>⚙️</span>Ajustes</button>
+</nav>
+
+<!-- Editar movimiento -->
+<dialog id="editDialog">
+  <form id="editForm" class="sheet">
+    <h3>Editar movimiento</h3>
+    <input id="editAmount" type="text" inputmode="decimal" placeholder="Importe" aria-label="Importe">
+    <div id="editCatWrap"><select id="editCat" aria-label="Categoría"></select></div>
+    <input id="editNote" type="text" placeholder="Nota" aria-label="Nota">
+    <input id="editDate" type="date" aria-label="Fecha">
+    <div class="row">
+      <button type="button" id="editDelete" class="danger">Borrar</button>
+      <button type="button" id="editCancel" class="secondary">Cancelar</button>
+      <button type="submit" class="primary">Guardar</button>
+    </div>
+  </form>
+</dialog>
+
+<!-- Aportar a una meta -->
+<dialog id="contribDialog">
+  <form id="contribForm" class="sheet">
+    <h3 id="contribTitle">Aportar</h3>
+    <input id="contribAmount" type="text" inputmode="decimal" placeholder="Importe €" aria-label="Importe">
+    <div class="row">
+      <button type="button" id="contribCancel" class="secondary">Cancelar</button>
+      <button type="submit" class="primary">Aportar</button>
+    </div>
+  </form>
+</dialog>
+
+<script src="app.js"></script>
+</body>
+</html>
