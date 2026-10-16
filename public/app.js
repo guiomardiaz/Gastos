@@ -21,6 +21,8 @@
     return Number.isFinite(n) && n >= 0 ? Math.round(n * 100) : null;
   };
   const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  // Como addEventListener, pero si el elemento no existe (HTML antiguo) no rompe el arranque
+  const on = (id, ev, fn) => { const n = document.getElementById(id); if (n) n.addEventListener(ev, fn); };
   const el = (tag, props = {}, children = []) => {
     const n = document.createElement(tag);
     for (const [k, v] of Object.entries(props)) {
@@ -778,8 +780,8 @@
 
   /* ---------- Eventos ---------- */
   function bind() {
-    $('alertCard').addEventListener('click', hideAlert);
-    $('quickForm').addEventListener('submit', (e) => {
+    on('alertCard', 'click', hideAlert);
+    on('quickForm', 'submit', (e) => {
       e.preventDefault();
       saveTx();
     });
@@ -796,17 +798,17 @@
       if (state.month > 12) { state.month = 1; state.year++; }
       renderAll();
     };
-    $('prevMonth').addEventListener('click', () => shift(-1));
-    $('nextMonth').addEventListener('click', () => shift(1));
+    on('prevMonth', 'click', () => shift(-1));
+    on('nextMonth', 'click', () => shift(1));
 
-    $('tone').addEventListener('change', async (e) => {
+    on('tone', 'change', async (e) => {
       state.tone = e.target.value;
       await dbPut('meta', { key: 'tone', value: state.tone });
       renderHome();
       toast('Tono cambiado');
     });
 
-    $('newCatForm').addEventListener('submit', async (e) => {
+    on('newCatForm', 'submit', async (e) => {
       e.preventDefault();
       const name = $('newCatName').value.trim();
       if (!name) return;
@@ -821,8 +823,8 @@
     });
 
     // Repeticiones
-    $('ruleType').addEventListener('change', fillRuleCats);
-    $('ruleForm').addEventListener('submit', async (e) => {
+    on('ruleType', 'change', fillRuleCats);
+    on('ruleForm', 'submit', async (e) => {
       e.preventDefault();
       const amount = parseAmount($('ruleAmount').value);
       const cat = $('ruleCat').value;
@@ -844,7 +846,7 @@
     });
 
     // Metas
-    $('goalForm').addEventListener('submit', async (e) => {
+    on('goalForm', 'submit', async (e) => {
       e.preventDefault();
       const name = $('goalName').value.trim();
       const target = parseAmount($('goalTarget').value);
@@ -856,8 +858,8 @@
       await load();
       renderAll();
     });
-    $('contribCancel').addEventListener('click', () => $('contribDialog').close());
-    $('contribForm').addEventListener('submit', async (e) => {
+    on('contribCancel', 'click', () => $('contribDialog').close());
+    on('contribForm', 'submit', async (e) => {
       e.preventDefault();
       const g = state.contribGoal;
       const amount = parseAmount($('contribAmount').value);
@@ -882,16 +884,16 @@
         : diff === 0 ? 'Ya cuadra: no hay nada que ajustar.'
         : `Huchi apuntará un ajuste de ${diff > 0 ? '+' : '−'}${fmt(Math.abs(diff))}. No cuenta como gasto ni como ingreso.`;
     };
-    $('adjustBtn').addEventListener('click', () => {
+    on('adjustBtn', 'click', () => {
       $('adjustNow').textContent = `Ahora Huchi cree que tienes ${fmt(balance())} en la cartera.`;
       $('adjustAmount').value = '';
       $('adjustDiff').textContent = '';
       $('adjustDialog').showModal();
       $('adjustAmount').focus();
     });
-    $('adjustAmount').addEventListener('input', updateAdjustDiff);
-    $('adjustCancel').addEventListener('click', () => $('adjustDialog').close());
-    $('adjustForm').addEventListener('submit', async (e) => {
+    on('adjustAmount', 'input', updateAdjustDiff);
+    on('adjustCancel', 'click', () => $('adjustDialog').close());
+    on('adjustForm', 'submit', async (e) => {
       e.preventDefault();
       const v = parseAmountOrZero($('adjustAmount').value);
       if (v === null) { toast('Escribe cuánto efectivo tienes (puede ser 0)'); return; }
@@ -914,7 +916,7 @@
         ? 'Sale de tu cartera y no cuenta como gasto.'
         : 'Entra en tu cartera y no cuenta como ingreso.';
     };
-    $('transferBtn').addEventListener('click', () => {
+    on('transferBtn', 'click', () => {
       setTransferDir('bank');
       $('transferAmount').value = '';
       $('transferNote').value = '';
@@ -922,8 +924,8 @@
       $('transferAmount').focus();
     });
     document.querySelectorAll('#transferDir button').forEach((b) => b.addEventListener('click', () => setTransferDir(b.dataset.dir)));
-    $('transferCancel').addEventListener('click', () => $('transferDialog').close());
-    $('transferForm').addEventListener('submit', async (e) => {
+    on('transferCancel', 'click', () => $('transferDialog').close());
+    on('transferForm', 'submit', async (e) => {
       e.preventDefault();
       const amount = parseAmount($('transferAmount').value);
       if (!amount) { toast('Pon un importe mayor que 0'); return; }
@@ -938,15 +940,15 @@
     });
 
     // Editar movimiento
-    $('editCancel').addEventListener('click', () => $('editDialog').close());
-    $('editDelete').addEventListener('click', async () => {
+    on('editCancel', 'click', () => $('editDialog').close());
+    on('editDelete', 'click', async () => {
       if (!state.editing || !confirm('¿Borrar este movimiento?')) return;
       await dbDel('tx', state.editing.id);
       $('editDialog').close();
       await load();
       renderAll();
     });
-    $('editForm').addEventListener('submit', async (e) => {
+    on('editForm', 'submit', async (e) => {
       e.preventDefault();
       const t = state.editing;
       const amount = parseAmount($('editAmount').value);
@@ -962,7 +964,7 @@
     });
 
     // Copia de seguridad
-    $('exportBtn').addEventListener('click', () => {
+    on('exportBtn', 'click', () => {
       const data = { version: 2, exportedAt: new Date().toISOString(), tone: state.tone, cats: state.cats, tx: state.txs, goals: state.goals, rules: state.rules };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = el('a', { href: URL.createObjectURL(blob), download: `huchi-${todayStr()}.json` });
@@ -971,7 +973,7 @@
       a.remove();
       setTimeout(() => URL.revokeObjectURL(a.href), 1000);
     });
-    $('importFile').addEventListener('change', async (e) => {
+    on('importFile', 'change', async (e) => {
       const file = e.target.files[0];
       e.target.value = '';
       if (!file) return;
@@ -1000,8 +1002,8 @@
     await load();
     if (await applyRules()) await load();
     $('date').value = todayStr();
-    bind();
     renderAll();
+    bind();
     // Atajos del icono: ?add=expense | ?add=income | ?view=limits ...
     const params = new URLSearchParams(location.search);
     const add = params.get('add');
@@ -1013,7 +1015,18 @@
       $('amount').focus();
     } else if (view && $('view-' + view)) showView(view);
     if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
-    if ('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(() => {});
+    if ('serviceWorker' in navigator) {
+      const hadController = !!navigator.serviceWorker.controller;
+      let reloaded = false;
+      navigator.serviceWorker.addEventListener('controllerchange', () => {
+        if (hadController && !reloaded) { reloaded = true; location.reload(); }
+      });
+      navigator.serviceWorker.register('sw.js').catch(() => {});
+    }
   }
-  init();
+  init().catch((err) => {
+    console.error(err);
+    const b = document.getElementById('bubble');
+    if (b) b.textContent = 'Algo ha fallado al abrir Huchi. Cierra la app y ábrela otra vez.';
+  });
 })();
