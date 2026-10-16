@@ -3,13 +3,16 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#db2777">
+<meta name="theme-color" content="#e0338a">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Huchi">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
 <link rel="apple-touch-icon" href="icon-180.png">
 <title>Huchi</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css">
 </head>
 <body data-view="home">
@@ -23,6 +26,7 @@
   <!-- AÑADIR -->
   <section id="view-home" class="view active">
     <div class="hero">
+      <span class="deco d1" aria-hidden="true">✨</span><span class="deco d2" aria-hidden="true">💗</span><span class="deco d3" aria-hidden="true">⭐</span><span class="deco d4" aria-hidden="true">🌸</span>
       <div id="mascot" class="mascot" aria-hidden="true"></div>
       <div class="hero-text">
         <span>En la cartera</span>
@@ -60,7 +64,7 @@
   <section id="view-list" class="view">
     <div id="listSummary" class="chips"></div>
     <ul id="txList" class="tx-list"></ul>
-    <p id="txEmpty" class="empty">Aún no hay movimientos este mes.</p>
+    <p id="txEmpty" class="empty"><span class="big">🐽</span>Aún no hay movimientos este mes.<br>¡Huchi tiene hambre de monedas!</p>
   </section>
 
   <!-- RESUMEN -->
@@ -84,7 +88,7 @@
     <h1 class="page-title">Metas de ahorro</h1>
     <p class="hint">El dinero que aportas sale de tu cartera y se queda guardado en la meta.</p>
     <ul id="goalList" class="goal-list"></ul>
-    <p id="goalEmpty" class="empty">Todavía no tienes metas. ¡Crea la primera!</p>
+    <p id="goalEmpty" class="empty"><span class="big">🎀</span>Todavía no tienes metas.<br>¡Crea la primera!</p>
     <h2>Nueva meta</h2>
     <form id="goalForm" class="row wrap">
       <input id="goalEmoji" type="text" maxlength="2" placeholder="🎯" aria-label="Emoji" class="emoji-in">

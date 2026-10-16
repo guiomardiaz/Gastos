@@ -108,30 +108,138 @@
 
   /* ---------- Mascota (huchi) ---------- */
   function pigSVG(mood) {
-    const ink = '#3b1230';
+    const ink = '#4a1233';
     const eyes = {
-      happy: `<path d="M30 52 Q35 44 40 52" stroke="${ink}" stroke-width="3.2" fill="none" stroke-linecap="round"/>
-              <path d="M60 52 Q65 44 70 52" stroke="${ink}" stroke-width="3.2" fill="none" stroke-linecap="round"/>`,
-      worried: `<circle cx="35" cy="50" r="3.4" fill="${ink}"/><circle cx="65" cy="50" r="3.4" fill="${ink}"/>
-                <path d="M29 45 L41 40" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>
-                <path d="M71 45 L59 40" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>
-                <path d="M82 30 q5 8 0 11 q-5 -3 0 -11z" fill="#7dd3fc"/>`,
-      angry: `<circle cx="35" cy="51" r="3.4" fill="${ink}"/><circle cx="65" cy="51" r="3.4" fill="${ink}"/>
-              <path d="M29 41 L41 47" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>
-              <path d="M71 41 L59 47" stroke="${ink}" stroke-width="3" stroke-linecap="round"/>
-              <ellipse cx="27" cy="62" rx="6" ry="4" fill="#ef4444" opacity=".35"/>
-              <ellipse cx="73" cy="62" rx="6" ry="4" fill="#ef4444" opacity=".35"/>`,
+      happy: `<g class="eyes blink"><circle cx="35" cy="50" r="4.2" fill="${ink}"/><circle cx="65" cy="50" r="4.2" fill="${ink}"/>
+              <circle cx="36.4" cy="48.4" r="1.5" fill="#fff"/><circle cx="66.4" cy="48.4" r="1.5" fill="#fff"/></g>
+              <path d="M44 63 Q50 69 56 63" stroke="${ink}" stroke-width="0" fill="none"/>`,
+      worried: `<g class="eyes blink"><circle cx="35" cy="50" r="4" fill="${ink}"/><circle cx="65" cy="50" r="4" fill="${ink}"/>
+                <circle cx="36.2" cy="48.6" r="1.4" fill="#fff"/><circle cx="66.2" cy="48.6" r="1.4" fill="#fff"/></g>
+                <path d="M29 44 L41 39" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>
+                <path d="M71 44 L59 39" stroke="${ink}" stroke-width="2.6" stroke-linecap="round"/>
+                <path class="sweat" d="M82 28 q6 9 0 12 q-6 -3 0 -12z" fill="#7dd3fc"/>`,
+      angry: `<circle cx="35" cy="51" r="3.6" fill="${ink}"/><circle cx="65" cy="51" r="3.6" fill="${ink}"/>
+              <path d="M28 40 L42 47" stroke="${ink}" stroke-width="3.2" stroke-linecap="round"/>
+              <path d="M72 40 L58 47" stroke="${ink}" stroke-width="3.2" stroke-linecap="round"/>
+              <path class="steam" d="M20 24 q-4 -6 0 -10 M80 24 q4 -6 0 -10" stroke="#ef4444" stroke-width="2.6" fill="none" stroke-linecap="round"/>`,
     };
-    return `<svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Huchi">
-      <polygon points="20,32 36,14 42,40" fill="#f472b6"/>
-      <polygon points="80,32 64,14 58,40" fill="#f472b6"/>
-      <ellipse cx="50" cy="56" rx="38" ry="34" fill="#f9a8d4" stroke="#db2777" stroke-width="3"/>
-      <rect x="41" y="23" width="18" height="5" rx="2.5" fill="#9d174d"/>
+    const blush = mood === 'angry' ? '#ef4444' : '#ff6fb1';
+    const mouth = mood === 'happy' ? `<path d="M45 76 Q50 81 55 76" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+      : mood === 'worried' ? `<path d="M45 78 Q50 74 55 78" stroke="${ink}" stroke-width="2.4" fill="none" stroke-linecap="round"/>`
+      : `<path d="M44 78 L56 78" stroke="${ink}" stroke-width="2.6" fill="none" stroke-linecap="round"/>`;
+    return `<svg class="pig ${mood}" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Huchi">
+      <path class="tail" d="M88 62 q10 -2 8 -10 q-2 -6 -8 -2" stroke="#ec4899" stroke-width="3.4" fill="none" stroke-linecap="round"/>
+      <g class="ear l"><polygon points="20,34 34,12 44,40" fill="#f472b6"/><polygon points="26,32 34,19 39,36" fill="#fbcfe8"/></g>
+      <g class="ear r"><polygon points="80,34 66,12 56,40" fill="#f472b6"/><polygon points="74,32 66,19 61,36" fill="#fbcfe8"/></g>
+      <ellipse cx="50" cy="58" rx="38" ry="33" fill="#ffb3d6" stroke="#e0338a" stroke-width="3"/>
+      <ellipse cx="34" cy="40" rx="9" ry="5" fill="#fff" opacity=".45" transform="rotate(-25 34 40)"/>
+      <rect x="40" y="25" width="20" height="5.5" rx="2.75" fill="#9d174d"/>
+      <g class="coin"><circle cx="50" cy="12" r="9" fill="#ffd54a" stroke="#f59e0b" stroke-width="2.4"/><text x="50" y="16" text-anchor="middle" font-size="11" font-weight="800" fill="#b45309">€</text></g>
       ${eyes[mood] || eyes.happy}
-      <ellipse cx="50" cy="68" rx="15" ry="11" fill="#fbcfe8" stroke="#db2777" stroke-width="2.5"/>
-      <ellipse cx="44.5" cy="68" rx="2.2" ry="3.4" fill="#9d174d"/>
-      <ellipse cx="55.5" cy="68" rx="2.2" ry="3.4" fill="#9d174d"/>
+      <ellipse cx="24" cy="62" rx="7" ry="4.5" fill="${blush}" opacity=".45"/>
+      <ellipse cx="76" cy="62" rx="7" ry="4.5" fill="${blush}" opacity=".45"/>
+      <ellipse cx="50" cy="66" rx="14" ry="9.5" fill="#ffd9ec" stroke="#e0338a" stroke-width="2.5"/>
+      <ellipse cx="45" cy="66" rx="2" ry="3.2" fill="#9d174d"/>
+      <ellipse cx="55" cy="66" rx="2" ry="3.2" fill="#9d174d"/>
+      ${mouth}
+      <ellipse class="foot" cx="30" cy="91" rx="9" ry="4.5" fill="#f472b6"/>
+      <ellipse class="foot" cx="70" cy="91" rx="9" ry="4.5" fill="#f472b6"/>
     </svg>`;
+  }
+
+  /* ---------- Animaciones y efectos ---------- */
+  const reduceMotion = () => window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const buzz = (ms) => { try { navigator.vibrate && navigator.vibrate(ms); } catch (e) {} };
+
+  // Lanza emojis desde el centro de un elemento
+  function burst(from, list, n = 10, spread = 110) {
+    if (reduceMotion() || !from) return;
+    const r = from.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('span');
+      p.className = 'particle';
+      p.textContent = list[i % list.length];
+      p.style.left = cx + 'px';
+      p.style.top = cy + 'px';
+      p.style.fontSize = 14 + Math.random() * 14 + 'px';
+      document.body.appendChild(p);
+      const ang = Math.random() * Math.PI * 2;
+      const dist = spread * (0.5 + Math.random() * 0.7);
+      const dx = Math.cos(ang) * dist, dy = Math.sin(ang) * dist - 40;
+      const a = p.animate(
+        [
+          { transform: 'translate(-50%,-50%) scale(.3)', opacity: 1 },
+          { transform: `translate(calc(-50% + ${dx}px), calc(-50% + ${dy}px)) scale(1.1) rotate(${(Math.random() - 0.5) * 120}deg)`, opacity: 1, offset: 0.6 },
+          { transform: `translate(calc(-50% + ${dx * 1.1}px), calc(-50% + ${dy + 70}px)) scale(.8)`, opacity: 0 },
+        ],
+        { duration: 900 + Math.random() * 500, easing: 'cubic-bezier(.2,.8,.3,1)' }
+      );
+      a.onfinish = () => p.remove();
+    }
+  }
+
+  // Lluvia de confeti a pantalla completa
+  function confetti() {
+    if (reduceMotion()) return;
+    const cols = ['#ff4fa3', '#ffd54a', '#7ee0c3', '#b794f6', '#ff9a8b', '#7dd3fc'];
+    for (let i = 0; i < 46; i++) {
+      const c = document.createElement('i');
+      c.className = 'confetto';
+      c.style.background = cols[i % cols.length];
+      c.style.left = Math.random() * 100 + 'vw';
+      c.style.borderRadius = i % 3 ? '2px' : '50%';
+      document.body.appendChild(c);
+      const a = c.animate(
+        [
+          { transform: 'translateY(-20px) rotate(0)', opacity: 1 },
+          { transform: `translate(${(Math.random() - 0.5) * 120}px, 105vh) rotate(${360 + Math.random() * 540}deg)`, opacity: 1 },
+        ],
+        { duration: 1800 + Math.random() * 1600, delay: Math.random() * 500, easing: 'cubic-bezier(.3,.5,.6,1)', fill: 'both' }
+      );
+      a.onfinish = () => c.remove();
+    }
+  }
+
+  // Reinicia una animación CSS de una clase en un elemento
+  function replay(node, cls, ms = 900) {
+    if (!node || reduceMotion()) return;
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+    setTimeout(() => node.classList.remove(cls), ms);
+  }
+
+  // Cuenta hasta el nuevo saldo
+  let shownBal = null, balRaf;
+  function animateBalance(target) {
+    const node = $('cashBalance');
+    if (shownBal === null || reduceMotion() || shownBal === target) {
+      node.textContent = fmt(target);
+      shownBal = target;
+      return;
+    }
+    cancelAnimationFrame(balRaf);
+    const from = shownBal, t0 = performance.now(), dur = 650;
+    replay(node, 'bump', 700);
+    const step = (now) => {
+      const k = Math.min(1, (now - t0) / dur);
+      const e = 1 - Math.pow(1 - k, 3);
+      node.textContent = fmt(Math.round(from + (target - from) * e));
+      if (k < 1) balRaf = requestAnimationFrame(step);
+      else shownBal = target;
+    };
+    shownBal = target;
+    balRaf = requestAnimationFrame(step);
+  }
+
+  // Huchi se traga la moneda
+  function munch(kind) {
+    const m = $('mascot');
+    if (!m) return;
+    replay(m, 'munch', 1100);
+    buzz(kind === 'income' ? [20, 40, 20] : 25);
+    burst(m, kind === 'income' ? ['💖', '✨', '🪙', '💕'] : ['🪙', '✨', '💗'], 7, 90);
   }
 
   /* ---------- Base de datos local (IndexedDB) ---------- */
@@ -374,6 +482,7 @@
     $('amount').value = '';
     $('note').value = '';
     $('date').value = todayStr();
+    munch(tx.type);
     if (!showLimitAlert(tx)) {
       const msg = saveMessage(tx);
       toast(msg.text, msg.alert);
@@ -384,10 +493,8 @@
 
   /* ---------- Render: cabecera y Añadir ---------- */
   function renderHeader() {
-    $('monthLabel').textContent = new Date(state.year, state.month - 1, 1).toLocaleDateString('es-ES', {
-      month: 'long',
-      year: 'numeric',
-    });
+    const ml = new Date(state.year, state.month - 1, 1).toLocaleDateString('es-ES', { month: 'long', year: 'numeric' });
+    $('monthLabel').textContent = ml.replace(' de ', ' ').replace(/^./, (c) => c.toUpperCase());
   }
 
   const short = (cents) => (cents % 100 === 0 ? `${cents / 100} €` : fmt(cents));
@@ -400,7 +507,7 @@
 
   function renderHome() {
     const bal = balance();
-    $('cashBalance').textContent = fmt(bal);
+    animateBalance(bal);
     const mt = monthTxs();
     const out = mt.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const inc = mt.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
@@ -417,8 +524,14 @@
     let msg = t[key][seed % t[key].length];
     const flagged = key === 'over' ? status.over : key === 'warn' ? status.warn : [];
     if (flagged.length) msg += ' → ' + flagged.map((c) => `${c.emoji} ${c.name}`).join(', ');
-    $('mascot').innerHTML = pigSVG(mood);
-    $('bubble').textContent = msg;
+    if ($('mascot').dataset.mood !== mood) {
+      $('mascot').innerHTML = pigSVG(mood);
+      $('mascot').dataset.mood = mood;
+    }
+    if ($('bubble').textContent !== msg) {
+      $('bubble').textContent = msg;
+      replay($('bubble'), 'pop', 600);
+    }
 
     // Cuánto puedes gastar al día
     const al = $('allowance');
@@ -436,6 +549,7 @@
 
     // Tipo y categorías
     document.querySelectorAll('.type-toggle button').forEach((b) => b.classList.toggle('active', b.dataset.type === state.type));
+    document.querySelector('.type-toggle').dataset.active = state.type;
     const spentMap = spentByCat();
     $('catButtons').replaceChildren(
       ...catsOf(state.type).map((c) => {
@@ -775,12 +889,17 @@
     document.querySelectorAll('.view').forEach((v) => v.classList.toggle('active', v.id === 'view-' + name));
     document.body.dataset.view = name;
     if (name === 'stats') renderStats();
+    const v = $('view-' + name);
+    replay(v, 'enter', 700);
+    if (name === 'home') replay($('catButtons'), 'enter', 800);
+    replay(document.querySelector('nav button.active span'), 'hop', 600);
     window.scrollTo(0, 0);
   }
 
   /* ---------- Eventos ---------- */
   function bind() {
     on('alertCard', 'click', hideAlert);
+    on('mascot', 'click', () => { replay($('mascot'), 'munch', 1100); burst($('mascot'), ['💗', '✨', '🎀'], 6, 80); buzz(15); });
     on('quickForm', 'submit', (e) => {
       e.preventDefault();
       saveTx();
@@ -789,6 +908,8 @@
       b.addEventListener('click', () => {
         state.type = b.dataset.type;
         renderHome();
+        replay($('catButtons'), 'enter', 800);
+        buzz(10);
       })
     );
     document.querySelectorAll('nav button').forEach((b) => b.addEventListener('click', () => showView(b.dataset.view)));
@@ -871,7 +992,7 @@
       await load();
       renderAll();
       const after = before + amount;
-      if (g.target && before < g.target && after >= g.target) toast(`¡Meta conseguida! 🎉 ${g.emoji} ${g.name}`);
+      if (g.target && before < g.target && after >= g.target) { toast(`¡Meta conseguida! 🎉 ${g.emoji} ${g.name}`); confetti(); buzz([40, 60, 40, 60, 80]); }
       else toast(`Aportados ${fmt(amount)} a ${g.name} (${Math.min(100, Math.round((after / g.target) * 100))}%)`);
     });
 

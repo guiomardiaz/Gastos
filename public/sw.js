@@ -1,4 +1,4 @@
-const CACHE = 'huchi-v8';
+const CACHE = 'huchi-v9';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
@@ -19,6 +19,7 @@ const timeout = (ms) => new Promise((_, reject) => setTimeout(() => reject(new E
 
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
+  if (new URL(e.request.url).origin !== self.location.origin) return; // fuentes de Google: que las gestione el navegador
   e.respondWith(
     Promise.race([fetch(e.request, { cache: 'no-cache' }), timeout(3500)])
       .then((res) => {
