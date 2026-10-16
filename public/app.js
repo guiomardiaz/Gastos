@@ -211,6 +211,7 @@
   }
 
   // Cuenta hasta el nuevo saldo
+  let shownBank = null;
   let shownBal = null, balRaf;
   function animateBalance(target) {
     const node = $('cashBalance');
@@ -276,6 +277,7 @@
   const state = {
     cats: [], txs: [], goals: [], rules: [],
     tone: 'suave',
+    bankStart: 0,
     type: 'expense',
     sel: { expense: null, income: null },
     year: now.getFullYear(),
@@ -297,6 +299,9 @@
     if (t.cat === LEGACY_INCOME) return { emoji: '💶', name: 'Ingreso' };
     return state.cats.find((c) => c.id === t.cat) || { emoji: '📦', name: 'Sin categoría' };
   }
+  // Dinero en el banco: lo que ya había + lo pasado desde la cartera - lo sacado del cajero
+  const bankNet = () => state.txs.filter((t) => t.type === 'transfer').reduce((s, t) => s + (t.to === 'bank' ? t.amount : -t.amount), 0);
+  const bankBalance = () => state.bankStart + bankNet();
   // Efecto de cada movimiento sobre el efectivo (positivo = entra, negativo = sale)
   const signed = (t) =>
     t.type === 'income' ? t.amount
@@ -328,6 +333,8 @@
     state.txs = (await dbAll('tx')).sort((a, b) => (a.date === b.date ? b.id - a.id : a.date < b.date ? 1 : -1));
     const tone = (await dbAll('meta')).find((m) => m.key === 'tone');
     if (tone && TONES[tone.value]) state.tone = tone.value;
+    const bs = (await dbAll('meta')).find((m) => m.key === 'bankStart');
+    state.bankStart = bs ? bs.value : 0;
     for (const kind of ['expense', 'income']) {
       const list = catsOf(kind);
       if (!list.some((c) => c.id === state.sel[kind])) state.sel[kind] = list[0] ? list[0].id : null;
@@ -508,6 +515,10 @@
   function renderHome() {
     const bal = balance();
     animateBalance(bal);
+    const bank = bankBalance();
+    $('bankAmount').textContent = fmt(bank);
+    if (shownBank !== null && shownBank !== bank) replay($('bankChip'), 'bump', 700);
+    shownBank = bank;
     const mt = monthTxs();
     const out = mt.filter((t) => t.type === 'expense').reduce((s, t) => s + t.amount, 0);
     const inc = mt.filter((t) => t.type === 'income').reduce((s, t) => s + t.amount, 0);
@@ -1037,6 +1048,16 @@
         ? 'Sale de tu cartera y no cuenta como gasto.'
         : 'Entra en tu cartera y no cuenta como ingreso.';
     };
+    on('bankChip', 'click', async () => {
+      const v = prompt('¿Cuánto dinero tienes en total en el banco? (por ejemplo 250,00)', toInput(Math.max(0, bankBalance())));
+      if (v === null) return;
+      const cents = parseAmountOrZero(v);
+      if (cents === null || cents === undefined || Number.isNaN(cents)) { toast('Importe no válido'); return; }
+      state.bankStart = cents - bankNet();
+      await dbPut('meta', { key: 'bankStart', value: state.bankStart });
+      renderHome();
+      toast(`Banco actualizado: ${fmt(bankBalance())}`);
+    });
     on('transferBtn', 'click', () => {
       setTransferDir('bank');
       $('transferAmount').value = '';
@@ -1056,8 +1077,8 @@
       await load();
       renderAll();
       toast(transferTo === 'bank'
-        ? `Pasados ${fmt(amount)} al banco. En la cartera te quedan ${fmt(balance())}.`
-        : `Sacados ${fmt(amount)} del cajero. Ahora tienes ${fmt(balance())} en la cartera.`);
+        ? `Pasados ${fmt(amount)} al banco. Banco: ${fmt(bankBalance())} · cartera: ${fmt(balance())}.`
+        : `Sacados ${fmt(amount)} del cajero. Banco: ${fmt(bankBalance())} · cartera: ${fmt(balance())}.`);
     });
 
     // Editar movimiento
@@ -1086,7 +1107,7 @@
 
     // Copia de seguridad
     on('exportBtn', 'click', () => {
-      const data = { version: 2, exportedAt: new Date().toISOString(), tone: state.tone, cats: state.cats, tx: state.txs, goals: state.goals, rules: state.rules };
+      const data = { version: 2, exportedAt: new Date().toISOString(), tone: state.tone, bankStart: state.bankStart, cats: state.cats, tx: state.txs, goals: state.goals, rules: state.rules };
       const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
       const a = el('a', { href: URL.createObjectURL(blob), download: `huchi-${todayStr()}.json` });
       document.body.append(a);
@@ -1108,6 +1129,7 @@
         for (const g of data.goals || []) await dbPut('goals', g);
         for (const r of data.rules || []) await dbPut('rules', r);
         if (data.tone) await dbPut('meta', { key: 'tone', value: data.tone });
+        if (typeof data.bankStart === 'number') await dbPut('meta', { key: 'bankStart', value: data.bankStart });
         await load();
         renderAll();
         toast('Copia importada');

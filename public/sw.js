@@ -1,4 +1,4 @@
-const CACHE = 'huchi-v9';
+const CACHE = 'huchi-v10';
 const ASSETS = ['./', 'index.html', 'styles.css', 'app.js', 'manifest.webmanifest', 'icon.svg', 'icon-180.png', 'icon-192.png', 'icon-512.png'];
 
 self.addEventListener('install', (e) => {
