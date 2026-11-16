@@ -113,6 +113,7 @@ async function handleRutinas({ items = [] }) {
       Categoría: { rich_text: text(it.category) },
       Clave: { rich_text: text(it.key) },
     };
+    if (it.tipo !== 'mood') props.Estado = { select: { name: it.estado === 'falta' ? '⏳ Falta' : '✅ Hecha' } };
     if (found) await api('PATCH', `/pages/${found.id}`, { properties: props });
     else await api('POST', '/pages', { parent: { database_id: rutinas }, properties: props });
   }
