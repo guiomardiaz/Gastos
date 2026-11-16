@@ -110,6 +110,14 @@
       <option value="sin-filtro">Sin filtro 🔥</option>
     </select>
 
+    <h2>Enviar a Notion</h2>
+    <p class="hint">Pon aquí tu clave secreta y cada gasto aparecerá solo en tu Notion.</p>
+    <input id="syncKey" type="password" placeholder="Clave de sincronización" autocomplete="off" aria-label="Clave de sincronización">
+    <div class="row">
+      <button id="syncNow" class="primary" type="button">Sincronizar todo ahora</button>
+    </div>
+    <p id="syncStatus" class="hint"></p>
+
     <h2>Categorías de gasto</h2>
     <p class="hint">Los límites se ponen en la pestaña Límites.</p>
     <ul id="catSettings" class="cat-settings"></ul>

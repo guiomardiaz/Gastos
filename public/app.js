@@ -267,10 +267,110 @@
     });
   const st = (name, mode = 'readonly') => db.transaction(name, mode).objectStore(name);
   const dbAll = (name) => wrap(st(name).getAll());
-  const dbPut = (name, val) => wrap(st(name, 'readwrite').put(val));
-  const dbAdd = (name, val) => wrap(st(name, 'readwrite').add(val));
-  const dbDel = (name, key) => wrap(st(name, 'readwrite').delete(key));
+  const dbPut = (name, val) => wrap(st(name, 'readwrite').put(val)).then((r) => { syncHook(name, 'up', val.id !== undefined ? val.id : r); return r; });
+  const dbAdd = (name, val) => wrap(st(name, 'readwrite').add(val)).then((r) => { syncHook(name, 'up', r); return r; });
+  const dbDel = (name, key) => wrap(st(name, 'readwrite').delete(key)).then((r) => { syncHook(name, 'del', key); return r; });
   const dbClear = (name) => wrap(st(name, 'readwrite').clear());
+
+
+  /* ---------- Sincronizar con Notion (en un solo sentido: Huchi -> Notion) ---------- */
+  // La clave se guarda solo en este móvil. El token de Notion nunca llega a la app.
+  const SYNC_KEY_LS = 'huchiSyncKey';
+  const SYNC_Q_LS = 'huchiSyncQueue';
+  const loadQ = () => { try { return JSON.parse(localStorage.getItem(SYNC_Q_LS)) || { tx: {}, cats: false }; } catch { return { tx: {}, cats: false }; } };
+  const saveQ = (q) => { try { localStorage.setItem(SYNC_Q_LS, JSON.stringify(q)); } catch {} };
+  let syncing = false;
+  let syncTimer = null;
+  function syncHook(store, op, id) {
+    if (!localStorage.getItem(SYNC_KEY_LS)) return;
+    if (store !== 'tx' && store !== 'cats') return;
+    const q = loadQ();
+    if (store === 'tx') q.tx[id] = op; else q.cats = true;
+    saveQ(q);
+    clearTimeout(syncTimer);
+    syncTimer = setTimeout(flushSync, 1500);
+  }
+  async function postSync(payload) {
+    const r = await fetch('/api/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-sync-key': localStorage.getItem(SYNC_KEY_LS) },
+      body: JSON.stringify(payload),
+    });
+    if (!r.ok) throw new Error('sync ' + r.status);
+  }
+  async function flushSync() {
+    if (syncing || !localStorage.getItem(SYNC_KEY_LS) || !navigator.onLine || !db) return;
+    const q = loadQ();
+    const ids = Object.keys(q.tx);
+    if (!ids.length && !q.cats) return;
+    syncing = true;
+    setSyncStatus('Sincronizando con Notion…');
+    try {
+      const cats = await dbAll('cats');
+      const txs = await dbAll('tx');
+      const nm = new Map(cats.map((c) => [c.id, c.name]));
+      const month = new Date().toISOString().slice(0, 7);
+      const spent = {};
+      txs.forEach((t) => {
+        if (t.type === 'expense' && t.date.slice(0, 7) === month) spent[t.cat] = (spent[t.cat] || 0) + t.amount;
+      });
+      const catPayload = cats
+        .filter((c) => (c.kind || 'expense') === 'expense')
+        .map((c) => ({ name: c.name, limit: c.limit || 0, spent: spent[c.id] || 0 }));
+      const byId = new Map(txs.map((t) => [String(t.id), t]));
+      const items = [];
+      for (const id of ids) {
+        if (q.tx[id] === 'del') { items.push({ id, op: 'del' }); continue; }
+        const t = byId.get(String(id));
+        if (!t || (t.type !== 'expense' && t.type !== 'income')) continue;
+        items.push({ id, op: 'up', type: t.type, amount: t.amount, catName: nm.get(t.cat) || '', note: t.note || '', date: t.date.slice(0, 10) });
+      }
+      const CHUNK = 15;
+      let first = true;
+      for (let i = 0; i < Math.max(items.length, 1); i += CHUNK) {
+        const part = items.slice(i, i + CHUNK);
+        await postSync({ items: part, cats: first ? catPayload : [], month });
+        first = false;
+        // Solo quitamos de la cola lo que ya está en Notion
+        const cur = loadQ();
+        part.forEach((it) => { if (cur.tx[it.id] === q.tx[it.id]) delete cur.tx[it.id]; });
+        saveQ(cur);
+      }
+      ids.filter((id) => !items.find((it) => String(it.id) === id)).forEach((id) => { const cur = loadQ(); delete cur.tx[id]; saveQ(cur); });
+      const cur = loadQ(); cur.cats = false; saveQ(cur);
+      setSyncStatus('Todo sincronizado con Notion ✅');
+    } catch (e) {
+      console.error(e);
+      setSyncStatus('No pude sincronizar ahora; lo reintento luego 💤');
+      setTimeout(flushSync, 60000);
+    }
+    syncing = false;
+    const rest = loadQ();
+    if (Object.keys(rest.tx).length) setTimeout(flushSync, 2000);
+  }
+  function setSyncStatus(t) { const el = document.getElementById('syncStatus'); if (el) el.textContent = t; }
+  async function syncEverything() {
+    const txs = await dbAll('tx');
+    const q = loadQ();
+    txs.filter((t) => t.type === 'expense' || t.type === 'income').forEach((t) => { q.tx[t.id] = 'up'; });
+    q.cats = true;
+    saveQ(q);
+    flushSync();
+  }
+  function bindSync() {
+    const input = document.getElementById('syncKey');
+    if (!input) return;
+    input.value = localStorage.getItem(SYNC_KEY_LS) || '';
+    input.addEventListener('change', () => {
+      const v = input.value.trim();
+      if (v) localStorage.setItem(SYNC_KEY_LS, v); else localStorage.removeItem(SYNC_KEY_LS);
+      setSyncStatus(v ? 'Clave guardada 🔑' : 'Sincronización desactivada');
+    });
+    const btn = document.getElementById('syncNow');
+    if (btn) btn.addEventListener('click', () => { input.dispatchEvent(new Event('change')); syncEverything(); });
+    window.addEventListener('online', flushSync);
+    flushSync();
+  }
 
   /* ---------- Estado ---------- */
   const now = new Date();
@@ -1147,6 +1247,7 @@
     $('date').value = todayStr();
     renderAll();
     bind();
+    bindSync();
     // Atajos del icono: ?add=expense | ?add=income | ?view=limits ...
     const params = new URLSearchParams(location.search);
     const add = params.get('add');
