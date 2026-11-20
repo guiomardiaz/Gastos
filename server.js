@@ -16,8 +16,34 @@ const TYPES = {
   '.png': 'image/png',
 };
 
+// Cobros en efectivo de VicGuiDogs. La clave la manda el móvil (x-vgd-key)
+// y aquí solo se reenvía: así el navegador no choca con CORS.
+const VGD_API = (process.env.VICGUIDOGS_API_URL || 'https://vicguidogs-production.up.railway.app').replace(/\/+$/, '');
+async function vgdEfectivo(req, res) {
+  const json = (code, obj) => res.writeHead(code, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(JSON.stringify(obj));
+  const key = req.headers['x-vgd-key'];
+  if (!key) return json(401, { error: 'falta la clave' });
+  const desde = new URL(req.url, 'http://x').searchParams.get('desde') || '';
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(desde)) return json(400, { error: 'fecha no válida' });
+  try {
+    const r = await fetch(`${VGD_API}/api/huchi/efectivo?desde=${desde}`, {
+      headers: { 'X-Huchi-Key': key },
+      signal: AbortSignal.timeout(20000),
+    });
+    const body = await r.text();
+    res.writeHead(r.status, { 'Content-Type': 'application/json', 'Cache-Control': 'no-store' }).end(body);
+  } catch (e) {
+    console.error('VicGuiDogs:', e.message);
+    json(502, { error: 'VicGuiDogs no responde' });
+  }
+}
+
 http
   .createServer((req, res) => {
+    if (req.method === 'GET' && (req.url || '').startsWith('/api/vicguidogs/efectivo')) {
+      vgdEfectivo(req, res);
+      return;
+    }
     if (req.method === 'POST' && (req.url === '/api/sync' || req.url === '/api/rutinas')) {
       const json = (code, obj) => res.writeHead(code, { 'Content-Type': 'application/json' }).end(JSON.stringify(obj));
       if (!sync.ready()) return json(503, { error: 'sync no configurado' });

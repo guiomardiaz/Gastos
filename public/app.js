@@ -372,6 +372,89 @@
     flushSync();
   }
 
+  /* ---------- Cobros en efectivo de VicGuiDogs (VicGuiDogs -> Huchi) ---------- */
+  // Solo llega el efectivo (normal, con propina y el dinero de más). Cada cobro
+  // se apunta una vez como ingreso en Perros, con el nombre del perro de concepto.
+  const VGD_KEY_LS = 'huchiVgdKey';
+  const VGD_META = 'vgdImport';
+  let vgdBusy = false;
+  function setVgdStatus(t) { const n = document.getElementById('vgdStatus'); if (n) n.textContent = t; }
+  async function perrosIncomeCat() {
+    const cats = await dbAll('cats');
+    const inc = cats.filter((c) => c.kind === 'income');
+    const found = inc.find((c) => c.id === 'perros-in') || inc.find((c) => /perro/i.test(c.name));
+    if (found) return found.id;
+    const cat = { id: 'perros-in', emoji: '🐶', name: 'Perros', kind: 'income', limit: 0, order: 100 };
+    await dbPut('cats', cat);
+    return cat.id;
+  }
+  async function pullVgd(manual = false) {
+    const key = localStorage.getItem(VGD_KEY_LS);
+    if (!key || vgdBusy || !db) return;
+    if (!navigator.onLine) { if (manual) setVgdStatus('Sin conexión ahora mismo 📵'); return; }
+    vgdBusy = true;
+    if (manual) setVgdStatus('Buscando cobros…');
+    try {
+      const row = (await dbAll('meta')).find((m) => m.key === VGD_META);
+      const meta = row && row.value ? row.value : { since: todayStr(), done: {} };
+      // Mira hasta 30 días atrás, pero nunca antes del día en que se activó
+      const back = dstr(new Date(Date.now() - 30 * 864e5));
+      const desde = meta.since > back ? meta.since : back;
+      const r = await fetch(`/api/vicguidogs/efectivo?desde=${desde}`, { headers: { 'x-vgd-key': key }, cache: 'no-store' });
+      if (r.status === 401) throw new Error('clave');
+      if (!r.ok) throw new Error('vgd ' + r.status);
+      const list = await r.json();
+      if (!Array.isArray(list)) throw new Error('formato');
+      const already = new Set((await dbAll('tx')).map((t) => t.ext).filter(Boolean));
+      let cat = null, n = 0, total = 0;
+      for (const c of list) {
+        const ext = 'vgd-' + c.id;
+        if (meta.done[c.id] || already.has(ext)) continue;
+        const amount = Math.round(Number(c.importe) * 100);
+        if (!(amount > 0) || !/^\d{4}-\d{2}-\d{2}$/.test(c.fecha || '')) continue;
+        if (!cat) cat = await perrosIncomeCat();
+        await dbAdd('tx', { type: 'income', amount, cat, note: String(c.concepto || 'Perro').slice(0, 120), date: c.fecha, ext });
+        meta.done[c.id] = c.fecha;
+        await dbPut('meta', { key: VGD_META, value: meta }); // guardado uno a uno: nunca se apunta dos veces
+        n++; total += amount;
+      }
+      const old = dstr(new Date(Date.now() - 40 * 864e5));
+      Object.keys(meta.done).forEach((id) => { if (meta.done[id] < old) delete meta.done[id]; });
+      await dbPut('meta', { key: VGD_META, value: meta });
+      if (n) {
+        await load();
+        renderAll();
+        munch('income');
+        toast(n === 1 ? `🐶 Cobro de VicGuiDogs apuntado: +${fmt(total)}` : `🐶 ${n} cobros de VicGuiDogs apuntados: +${fmt(total)}`);
+      }
+      setVgdStatus(n ? `Apuntados ${n} cobro${n === 1 ? '' : 's'} (+${fmt(total)}) ✅` : 'Todo al día con VicGuiDogs ✅');
+    } catch (e) {
+      console.error(e);
+      setVgdStatus(e.message === 'clave' ? 'La clave de VicGuiDogs no es correcta 🔑' : 'No pude hablar con VicGuiDogs; lo intento al volver a abrir 💤');
+    }
+    vgdBusy = false;
+  }
+  function bindVgd() {
+    const input = document.getElementById('vgdKey');
+    if (!input) return;
+    input.value = localStorage.getItem(VGD_KEY_LS) || '';
+    input.addEventListener('change', async () => {
+      const v = input.value.trim();
+      if (v) localStorage.setItem(VGD_KEY_LS, v); else localStorage.removeItem(VGD_KEY_LS);
+      setVgdStatus(v ? 'Clave guardada 🔑' : 'Cobros de VicGuiDogs desactivados');
+      if (v) pullVgd(true);
+    });
+    const btn = document.getElementById('vgdNow');
+    if (btn) btn.addEventListener('click', () => {
+      const v = input.value.trim();
+      if (v !== (localStorage.getItem(VGD_KEY_LS) || '')) input.dispatchEvent(new Event('change'));
+      else pullVgd(true);
+    });
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') pullVgd(); });
+    window.addEventListener('online', () => pullVgd());
+    pullVgd();
+  }
+
   /* ---------- Estado ---------- */
   const now = new Date();
   const state = {
@@ -1248,6 +1331,7 @@
     renderAll();
     bind();
     bindSync();
+    bindVgd();
     // Atajos del icono: ?add=expense | ?add=income | ?view=limits ...
     const params = new URLSearchParams(location.search);
     const add = params.get('add');
